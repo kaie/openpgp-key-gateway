@@ -40,13 +40,32 @@ $output = curl_exec($ch);
 //$curl_info = curl_getinfo($ch);
 curl_close($ch);
 
+$pad_prefix = "-----BEGIN PADDING-----\n";
+$pad_suffix = "\n-----END PADDING-----\n";
+$pad_size = 20480 - ((strlen($output) + strlen($pad_prefix) + strlen($pad_suffix)) % 20480);
+
+$chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/';
+$max_index = strlen($chars) - 1;
+$pad = $pad_prefix;
+
+for ($i = 0; $i < $pad_size; $i++) {
+  if ($i % 80 == 0) {
+    $pad .= "\n";
+    continue;
+  }
+  $index = rand(0, $max_index);
+  $pad .= $chars[$index];
+}
+$pad .= $pad_suffix;
+
 $tmpfname = tempnam("/tmp", "encrypt-in");
 
 $fhandle = fopen($tmpfname, "w");
 fwrite($fhandle, $output);
+fwrite($fhandle, $pad);
 fclose($fhandle);
 
-$cmd = "cat ${tmpfname} | gpg --homedir /home/gnupg-keyring/ --armor --symmetric --no-symkey-cache --passphrase ${sym_pass} --pinentry-mode loopback --batch";
+$cmd = "cat ${tmpfname} | gpg --homedir /home/gnupg-keyring/ --armor --symmetric --no-symkey-cache --passphrase ${sym_pass} --pinentry-mode loopback --batch --compress-algo none";
 
 $ciphertext = shell_exec($cmd);
 
