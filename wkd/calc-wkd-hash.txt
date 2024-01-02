@@ -1,0 +1,15 @@
+To obtain the OpenPGP WKD hash of $EMAIL on the terminal:
+
+Install zbase32 tool:
+
+# install go
+export GOPATH=$HOME/go
+export GOBIN=$HOME/local/bin
+export PATH=$GOBIN:$PATH
+go get github.com/tv42/zbase32/
+go install github.com/tv42/zbase32/cmd/zbase32-encode
+
+# calculate:
+
+EMAIL="someone@example.com"
+HASH=$(echo -n $EMAIL|sed 's/@.*$//g'|openssl sha1 -binary|zbase32-encode)
