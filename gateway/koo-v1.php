@@ -23,9 +23,34 @@ if (count($params) != "3") {
   return;
 }
 
-$sym_pass = $params[0];
-$action = $params[1];
-$dest_param = $params[2];
+$sym_pass = trim($params[0]);
+if (!ctype_alnum($sym_pass) || strlen($sym_pass) > 50) {
+  echo "symmetric passphrase parameter must be strictly alphanumeric and max 50 characters";
+  return;
+}
+
+$action = trim($params[1]);
+$dest_param = trim($params[2]);
+
+if ($action == "by-fingerprint") {
+  if (!ctype_alnum($dest_param) || strlen($dest_param) != 40) {
+    echo "fingerprint parameter isn't 40 characters or isn't alphanumeric";
+    return;
+  }
+} else if ($action == "by-keyid") {
+  if (!ctype_alnum($dest_param) || strlen($dest_param) != 16) {
+    echo "fingerprint parameter isn't 16 characters or isn't alphanumeric";
+    return;
+  }
+} else if ($action == "by-email") {
+  if (!filter_var($dest_param, FILTER_VALIDATE_EMAIL)) {
+    echo "unexpected email format";
+    return;
+  }
+} else {
+  echo "invalid action parameter";
+  return;
+}
 
 $url = trim("https://keys.openpgp.org/vks/v1/${action}/${dest_param}");
 

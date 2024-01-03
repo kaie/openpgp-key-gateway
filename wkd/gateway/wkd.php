@@ -15,8 +15,6 @@ function get_from_tor($u)
   return $output;
 }
 
-
-
 header('Content-Type: text/plain');
 
 $q = $_SERVER['QUERY_STRING'];
@@ -42,8 +40,22 @@ if (count($params) != "3") {
 }
 
 $sym_pass = trim($params[0]);
+if (!ctype_alnum($sym_pass) || strlen($sym_pass) > 50) {
+  echo "symmetric passphrase parameter must be strictly alphanumeric and max 50 characters";
+  return;
+}
+
 $email = trim($params[1]);
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+  echo "unexpected email format";
+  return;
+}
+
 $hash = trim($params[2]);
+if (!ctype_alnum($hash) || strlen($sym_pass) != 32) {
+  echo "hash parameter must be alphanumeric and exactly 32 characters";
+  return;
+}
 
 $email_parts = explode("@", $email);
 if (count($email_parts) != "2") {
