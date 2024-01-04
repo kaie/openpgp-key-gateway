@@ -52,7 +52,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 
 $hash = trim($params[2]);
-if (!ctype_alnum($hash) || strlen($sym_pass) != 32) {
+if (!ctype_alnum($hash) || strlen($hash) != 32) {
   echo "hash parameter must be alphanumeric and exactly 32 characters";
   return;
 }
