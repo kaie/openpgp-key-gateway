@@ -11,6 +11,7 @@ function get_from_tor($u)
   $output = curl_exec($ch);
   //$curl_error = curl_error($ch);
   //$curl_info = curl_getinfo($ch);
+  http_response_code(curl_getinfo($ch, CURLINFO_RESPONSE_CODE));
   curl_close($ch);
   return $output;
 }
@@ -35,30 +36,35 @@ $plain = gnupg_decrypt($hpgp, $binary);
 $params = explode(" ", $plain);
 
 if (count($params) != "3") {
+  http_response_code(400);
   print_r("exit params size: " . count($params));
   return;
 }
 
 $sym_pass = trim($params[0]);
 if (!ctype_alnum($sym_pass) || strlen($sym_pass) > 50) {
+  http_response_code(400);
   echo "symmetric passphrase parameter must be strictly alphanumeric and max 50 characters";
   return;
 }
 
 $email = trim($params[1]);
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+  http_response_code(400);
   echo "unexpected email format";
   return;
 }
 
 $hash = trim($params[2]);
 if (!ctype_alnum($hash) || strlen($hash) != 32) {
+  http_response_code(400);
   echo "hash parameter must be alphanumeric and exactly 32 characters";
   return;
 }
 
 $email_parts = explode("@", $email);
 if (count($email_parts) != "2") {
+  http_response_code(400);
   print_r("bad email parameter");
   return;
 }

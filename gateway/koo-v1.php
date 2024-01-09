@@ -19,12 +19,14 @@ $plain = gnupg_decrypt($hpgp, $binary);
 $params = explode(" ", $plain);
 
 if (count($params) != "3") {
+  http_response_code(400);
   print_r("exit params size: " . count($params));
   return;
 }
 
 $sym_pass = trim($params[0]);
 if (!ctype_alnum($sym_pass) || strlen($sym_pass) > 50) {
+  http_response_code(400);
   echo "symmetric passphrase parameter must be strictly alphanumeric and max 50 characters";
   return;
 }
@@ -34,20 +36,24 @@ $dest_param = trim($params[2]);
 
 if ($action == "by-fingerprint") {
   if (!ctype_alnum($dest_param) || strlen($dest_param) != 40) {
+    http_response_code(400);
     echo "fingerprint parameter isn't 40 characters or isn't alphanumeric";
     return;
   }
 } else if ($action == "by-keyid") {
   if (!ctype_alnum($dest_param) || strlen($dest_param) != 16) {
+    http_response_code(400);
     echo "fingerprint parameter isn't 16 characters or isn't alphanumeric";
     return;
   }
 } else if ($action == "by-email") {
   if (!filter_var($dest_param, FILTER_VALIDATE_EMAIL)) {
+    http_response_code(400);
     echo "unexpected email format";
     return;
   }
 } else {
+  http_response_code(400);
   echo "invalid action parameter";
   return;
 }
@@ -63,6 +69,7 @@ curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5_HOSTNAME);
 $output = curl_exec($ch);
 //$curl_error = curl_error($ch);
 //$curl_info = curl_getinfo($ch);
+http_response_code(curl_getinfo($ch, CURLINFO_RESPONSE_CODE));
 curl_close($ch);
 
 $pad_prefix = "-----BEGIN PADDING-----\n";

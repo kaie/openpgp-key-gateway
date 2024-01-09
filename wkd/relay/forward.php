@@ -31,13 +31,11 @@ curl_setopt($ch, CURLOPT_PROXY, "http://127.0.0.1:9050/");
 curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5_HOSTNAME);
 $output = curl_exec($ch);
 $curl_error = curl_error($ch);
+http_response_code(curl_getinfo($ch, CURLINFO_RESPONSE_CODE));
 curl_close($ch);
 
 //print_r("arrived after curl_close");
 
 print_r($output);
 print_r($curl_error);
-
-
-
 ?>
