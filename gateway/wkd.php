@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: text/plain');
 
 $q = $_SERVER['QUERY_STRING'];
@@ -10,10 +11,10 @@ $b64 = strtr($q, '-_', '+/');
 $binary = base64_decode($b64, true);
 
 $hpgp = gnupg_init(["file_name" => "/usr/bin/gpg", "home_dir" => "/home/gnupg-keyring/"]);
-//gnupg_seterrormode($hpgp, GNUPG_ERROR_EXCEPTION);
+gnupg_seterrormode($hpgp, GNUPG_ERROR_EXCEPTION);
 
 gnupg_adddecryptkey($hpgp, "18F82455FAF551851D1884301F61598816DAD843", "");
-//print_r(gnupg_geterror($hpgp));
+print_r(gnupg_geterror($hpgp));
 
 $plain = gnupg_decrypt($hpgp, $binary);
 $params = explode(" ", $plain);
@@ -31,40 +32,59 @@ if (!ctype_alnum($sym_pass) || strlen($sym_pass) > 50) {
   return;
 }
 
-$action = trim($params[1]);
-$dest_param = trim($params[2]);
-
-if ($action == "by-fingerprint") {
-  if (!ctype_alnum($dest_param) || strlen($dest_param) != 40) {
-    http_response_code(400);
-    echo "fingerprint parameter isn't 40 characters or isn't alphanumeric";
-    return;
-  }
-} else if ($action == "by-keyid") {
-  if (!ctype_alnum($dest_param) || strlen($dest_param) != 16) {
-    http_response_code(400);
-    echo "fingerprint parameter isn't 16 characters or isn't alphanumeric";
-    return;
-  }
-} else if ($action == "by-email") {
-  if (!filter_var($dest_param, FILTER_VALIDATE_EMAIL)) {
-    http_response_code(400);
-    echo "unexpected email format";
-    return;
-  }
-} else {
+$email = trim($params[1]);
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
   http_response_code(400);
-  echo "invalid action parameter";
+  echo "unexpected email format";
   return;
 }
 
-$url = trim("https://keys.openpgp.org/vks/v1/${action}/${dest_param}");
+$hash = trim($params[2]);
+if (!ctype_alnum($hash) || strlen($hash) != 32) {
+  http_response_code(400);
+  echo "hash parameter must be alphanumeric and exactly 32 characters";
+  return;
+}
 
-$output = file_get_contents($url);
+$email_parts = explode("@", $email);
+if (count($email_parts) != "2") {
+  http_response_code(400);
+  print_r("bad email parameter");
+  return;
+}
+
+$local = urlencode(trim($email_parts[0]));
+$domain = trim($email_parts[1]);
+
+$url_advanced = "https://openpgpkey." . $domain . "/.well-known/openpgpkey/"
+  . $domain . "/hu/" . $hash . "?l=" . $local;
+
+$url_direct = "https://" . $domain . "/.well-known/openpgpkey/hu/"
+  . $hash . "?l=" . $local;
+
+//print_r($url_advanced);
+//echo "\n";
+//print_r($url_direct);
+//echo "\n";
+
+$output = "";
+try {
+  $output = file_get_contents($url_advanced);
+} catch (Exception $ex) {
+}
+
+if (!strlen($output)) {
+  try {
+    $output = file_get_contents($url_direct);
+  } catch (Exception $ex) {
+  }
+}
+
+$b64out = base64_encode($output);
 
 $pad_prefix = "-----BEGIN PADDING-----\n";
 $pad_suffix = "\n-----END PADDING-----\n";
-$pad_size = 20480 - ((strlen($output) + strlen($pad_prefix) + strlen($pad_suffix)) % 20480);
+$pad_size = 20480 - ((strlen($b64out) + strlen($pad_prefix) + strlen($pad_suffix)) % 20480);
 
 $chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/';
 $max_index = strlen($chars) - 1;
@@ -80,10 +100,12 @@ for ($i = 0; $i < $pad_size; $i++) {
 }
 $pad .= $pad_suffix;
 
+
 $tmpfname = tempnam("/tmp", "encrypt-in");
 
 $fhandle = fopen($tmpfname, "w");
-fwrite($fhandle, $output);
+fwrite($fhandle, $b64out);
+fwrite($fhandle, "\n");
 fwrite($fhandle, $pad);
 fclose($fhandle);
 

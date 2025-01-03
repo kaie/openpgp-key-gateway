@@ -9,10 +9,10 @@ if (!strlen($q)) {
 $b64 = strtr($q, '-_', '+/');
 $binary = base64_decode($b64, true);
 
-$hpgp = gnupg_init(["file_name" => "/usr/bin/gpg", "home_dir" => "/home/gnupg-keyring/"]);
+$hpgp = gnupg_init(["file_name" => "/usr/bin/gpg2", "home_dir" => "/home/gnupg-keyring/"]);
 //gnupg_seterrormode($hpgp, GNUPG_ERROR_EXCEPTION);
 
-gnupg_adddecryptkey($hpgp, "18F82455FAF551851D1884301F61598816DAD843", "");
+gnupg_adddecryptkey($hpgp, "BA6DA5B473541CC246F0E5F7B2FD60B35239C2EF", "");
 //print_r(gnupg_geterror($hpgp));
 
 $plain = gnupg_decrypt($hpgp, $binary);
@@ -60,7 +60,17 @@ if ($action == "by-fingerprint") {
 
 $url = trim("https://keys.openpgp.org/vks/v1/${action}/${dest_param}");
 
-$output = file_get_contents($url);
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_FAILONERROR, true); // Required for HTTP error codes to be reported via our call to curl_error($ch)
+curl_setopt($ch, CURLOPT_PROXY, "http://127.0.0.1:9050/");
+curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5_HOSTNAME);
+$output = curl_exec($ch);
+//$curl_error = curl_error($ch);
+//$curl_info = curl_getinfo($ch);
+http_response_code(curl_getinfo($ch, CURLINFO_RESPONSE_CODE));
+curl_close($ch);
 
 $pad_prefix = "-----BEGIN PADDING-----\n";
 $pad_suffix = "\n-----END PADDING-----\n";
